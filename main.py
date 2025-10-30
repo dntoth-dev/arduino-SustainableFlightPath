@@ -1,9 +1,14 @@
 import datetime
 import time
-from opensky_api import OpenSkyApi as osky
+from opensky_api import OpenSkyApi
+import requests
 
+
+
+
+# region OpenSky API Setup
 # Use your credentials to ensure authentication is attempted
-api = osky()
+api = OpenSkyApi()
 
 # region Time Conversion Functions
 
@@ -33,4 +38,39 @@ min_lat, min_long, max_lat, max_long = 45.7, 16.0, 48.6, 22.9
 
 active_flights = api.get_states(bbox=(min_lat, max_lat, min_long, max_long))
 print(f"Number of active flights in the area: {len(active_flights.states)}")
+# endregion
 
+# region AviationStack setup & API call
+
+# Loading the personal API key
+import json
+with open('aviationstack_key.json') as f:
+    config = json.load(f)
+    
+AVSTACK_API_KEY = config['aviationstack_key']
+BASE_URL = 'http://api.aviationstack.com/v1/'
+ENDPOINT = 'flights'
+PARAMETERS = {
+    'access_key': AVSTACK_API_KEY, # API key for authentication
+    'flight_status': 'active', # Filter for currently active flights
+    'limit': 5, # Limit the number of results
+}
+
+def fetch_avData():
+    try:
+        print(f"Connecting to AviationStack API at {BASE_URL}{ENDPOINT}")
+        response = requests.get(BASE_URL + ENDPOINT, params=PARAMETERS)
+        response.raise_for_status()  # Check for HTTP errors
+        data = response.json()
+        
+        if data and 'data' in data and data['data']:
+            print("AVDATA fetched successfully:")
+            for flight in data['data']:
+                print(f"Flight {flight['flight']['iata']} is heading from {flight['departure']['airport']} to {flight['arrival']['airport']}.")
+
+    except (FileNotFoundError, KeyError, ValueError, RuntimeError, requests.exceptions.RequestException) as e:
+        print(f"Error fetching AviationStack data: {e}")
+
+if __name__ == "__main__":
+    fetch_avData()
+# endregion

@@ -9,11 +9,14 @@ import openpyxl as xl
 # region Importing sources
 try:
     print("Importing sources...")
-    fixes = xl.load_workbook('fixes.xlsx')
-    airports = xl.load_workbook('airports.xlsx')
+    fixes_Workbook = xl.load_workbook('fixes.xlsx')
+    airports_Workbook = xl.load_workbook('airports.xlsx')
     print("Sources imported successfully.")
 except Exception as e:
     print(f"Error importing sources: {e}")
+    
+fixes = fixes_Workbook.active
+airports = airports_Workbook.active
 # endregion
 # region OpenSky API Setup
 # Use your credentials to ensure authentication is attempted
@@ -57,30 +60,52 @@ with open('aviationstack_key.json') as f:
     config = json.load(f)
     
 AVSTACK_API_KEY = config['aviationstack_key']
-BASE_URL = 'http://api.aviationstack.com/v1/'
-ENDPOINT = 'flights'
-PARAMETERS = {
-    'access_key': AVSTACK_API_KEY, # API key for authentication
-    'flight_status': 'active', # Filter for currently active flights
-    'limit': 5 # Limit the number of results
-}
+BASE_URL = 'http://api.aviationstack.com/v1/flights'
+
 
 def fetch_avData():
+    arrival_flights = []
+    departure_flights = []
+    
     try:
-        print(f"Connecting to AviationStack API at {BASE_URL}{ENDPOINT}")
-        response = requests.get(BASE_URL + ENDPOINT, params=PARAMETERS)
-        response.raise_for_status()  # Check for HTTP errors
-        data = response.json()
+        arrival_params = {
+        'access_key': AVSTACK_API_KEY,
+        # 'flight_date': f"{datetime.datetime.now().year}-{datetime.datetime.now().month}-{datetime.datetime.now().day}",
+        'flight_status': 'landed',
+        'arr_icao': 'LHBP',
+        'limit': 20
+        }
+        departure_params = {
+        'access_key': AVSTACK_API_KEY,
+        # 'flight_date': f"{datetime.datetime.now().year}-{datetime.datetime.now().month}-{datetime.datetime.now().day}",
+        'dep_icao': 'LHBP',
+        'flight_status': 'landed',
+        'limit': 20
+        }
         
-        if data and 'data' in data and data['data']:
-            print("AVDATA fetched successfully:")
-            for flight in data['data']:
-                print(f"Flight {flight['flight']['iata']} is heading from {flight['departure']['airport']} to {flight['arrival']['airport']}.")
-
+        departure_response = requests.get(BASE_URL, params=departure_params)
+        departure_response.raise_for_status()  # Check for HTTP errors
+        departure_data = departure_response.json()
+            
+        arrival_response = requests.get(BASE_URL, params=arrival_params)
+        arrival_response.raise_for_status()  # Check for HTTP errors
+        arrival_data = arrival_response.json()
+            
+        departures = departure_data.get('data', [])
+        arrivals = arrival_data.get('data', [])
+        
+        for flight in departures:
+            print(f"Flight {flight['flight']['iata']} is departing from Budapest Airport (LHBP)")
+            
+        for flight in arrivals:
+            print(f"Flight {flight['flight']['iata']} is arriving at Budapest Airport (LHBP)")
+            
     except (FileNotFoundError, KeyError, ValueError, RuntimeError, requests.exceptions.RequestException) as e:
         print(f"Error fetching AviationStack data: {e}")
-
-
+    
+    
+    
+    
 if __name__ == "__main__":
     fetch_avData()
 # endregion

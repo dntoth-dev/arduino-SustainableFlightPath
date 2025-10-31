@@ -1,13 +1,23 @@
+# region Importing libraries
 import datetime
 import time
 from opensky_api import OpenSkyApi
 import requests
+import openpyxl as xl
+# endregion
 
-
-
-
+# region Importing sources
+try:
+    print("Importing sources...")
+    fixes = xl.load_workbook('fixes.xlsx')
+    airports = xl.load_workbook('airports.xlsx')
+    print("Sources imported successfully.")
+except Exception as e:
+    print(f"Error importing sources: {e}")
+# endregion
 # region OpenSky API Setup
 # Use your credentials to ensure authentication is attempted
+print("Setting up OpenSky API connection...")
 api = OpenSkyApi()
 
 # region Time Conversion Functions
@@ -39,7 +49,6 @@ min_lat, min_long, max_lat, max_long = 45.7, 16.0, 48.6, 22.9
 active_flights = api.get_states(bbox=(min_lat, max_lat, min_long, max_long))
 print(f"Number of active flights in the area: {len(active_flights.states)}")
 # endregion
-
 # region AviationStack setup & API call
 
 # Loading the personal API key
@@ -53,7 +62,7 @@ ENDPOINT = 'flights'
 PARAMETERS = {
     'access_key': AVSTACK_API_KEY, # API key for authentication
     'flight_status': 'active', # Filter for currently active flights
-    'limit': 5, # Limit the number of results
+    'limit': 5 # Limit the number of results
 }
 
 def fetch_avData():
@@ -70,6 +79,7 @@ def fetch_avData():
 
     except (FileNotFoundError, KeyError, ValueError, RuntimeError, requests.exceptions.RequestException) as e:
         print(f"Error fetching AviationStack data: {e}")
+
 
 if __name__ == "__main__":
     fetch_avData()
